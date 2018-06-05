@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
 const { ObjectID } = require('mongodb');
@@ -12,11 +13,12 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.json());
 
 app.post('/todos', (req, res) => {
+  console.log('Creating new Todo...');
   const todo = new Todo({
     text: req.body.text
   });
-
   todo.save().then((doc) => {
+    console.log('Success!');
     res.status(200).send(doc);
   }, (err) => {
     res.status(400).send(err);
@@ -43,8 +45,49 @@ app.get('/todos/:id', (req, res) => {
     }
     return res.status(200).send({ todo });
   }).catch((err) => console.log(err));
-
 });
+
+app.delete('/todos/:id', (req, res) => {
+  const { id } = req.params;
+  console.log(' Deleting todo with ID: ', id);
+  if (!ObjectID.isValid(id)) {
+    return res.status(404).send('Not a valid ID');
+  }
+  Todo.findByIdAndRemove(id).then((todo) => {
+    if (!todo) {
+      return res.status(404).send('Todo not found');
+    }
+    return res.status(200).send({ todo });
+  }).catch((err) => console.log(err));
+});
+
+app.patch('/todos/:id', (req, res) => {
+  const { id } = req.params;
+  const body = _.pick(req.body, ['text', 'completed']); // creates array of values from body
+  console.log('Updatind todo with ID: ', id);
+  if (!ObjectID.isValid(id)) {
+    return res.status(404).send('Not a valid ID');
+  }
+  if (_.isBoolean(body.completed) && body.completed) {
+    body.completedAt = new Date().getTime();
+  } else {
+    body.completed = false;
+    body.completedAt = null; // null removes item from DB
+  }
+  Todo.findByIdAndUpdate(id, {
+    $set: body
+  }, {
+    new: true
+  })
+  .then((todo) => {
+    if (!todo) {
+      return res.status(404).send('Todo not found');
+    }
+    return res.status(200).send({ todo });
+  }).catch((err) => {
+    res.status(400).send(err);
+  })
+})
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);
