@@ -10,7 +10,9 @@ const todos = [{
   text: 'Hello, Mocha!'
 }, {
   _id: new ObjectID(),
-  text: 'Superrrrtest'
+  text: 'Superrrrtest',
+  completed: true,
+  completedAt: 123
 }];
 
 beforeEach((done) => {
@@ -22,7 +24,6 @@ beforeEach((done) => {
 describe('POST /todos', () => {
   it('should create a new todo', (done) => {
     const text = 'hello, api';
-
     request(app)
       .post('/todos')
       .send({ text })
@@ -41,7 +42,6 @@ describe('POST /todos', () => {
         }).catch(e => done(e));
       });
   });
-
   it('should not create a todo with invalid body data', (done) => {
     request(app)
       .post('/todos')
@@ -121,6 +121,41 @@ describe('DELETE /todos/:id', () => {
     request(app)
       .delete('/todos/123}')
       .expect(404)
+      .end(done);
+  });
+});
+describe('PATCH /todos/:id', () => {
+  const id = todos[0]._id.toHexString();
+  it('should update the todo', (done) => {
+    const text = 'Mocha update!';
+    request(app)
+      .patch(`/todos/${id}`)
+      .send({
+        text,
+        completed: true
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(true);
+        expect(typeof res.body.todo.completedAt).toBe('number');
+      })
+      .end(done);
+  });
+  it('should clear completedAt when todo is not completed', (done) => {
+    const text = 'Mocha update too!';
+    request(app)
+      .patch(`/todos/${id}`)
+      .send({
+        text,
+        completed: false
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(false);
+        expect(res.body.todo.completedAt).toBeFalsy();
+      })
       .end(done);
   });
 });

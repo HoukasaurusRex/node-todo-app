@@ -1,3 +1,4 @@
+require('./config/config.js');
 const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -8,6 +9,7 @@ const { Todo } = require('./models/todo.js');
 const { User } = require('./models/user.js');
 
 const app = express();
+const env = process.env.NODE_ENV || 'development';
 const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
@@ -90,7 +92,7 @@ app.patch('/todos/:id', (req, res) => {
 })
 
 app.listen(port, () => {
-  console.log(`App listening on port ${port}`);
+  console.log(`App listening on port ${port} in ${env} mode`);
 });
 
 module.exports = { app };
