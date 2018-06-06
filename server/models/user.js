@@ -36,8 +36,10 @@ UserSchema.methods.generateAuthToken = function() {
   const access = 'auth';
   const token = jwt.sign({_id: user._id.toHexString(), access}, 'secretsauce').toString();
 
-  user.tokens.push({ access, token });
-  console.log('Saving user...', user);
+  const testArr = [];
+
+  user.tokens.concat([{ access, token }]);
+  console.log(testArr.concat([{ access, token }]));
   return user.save().then(() => token);
 };
 
