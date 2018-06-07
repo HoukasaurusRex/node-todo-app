@@ -7,6 +7,7 @@ const { ObjectID } = require('mongodb');
 const { mongoose } = require('./db/mongoose.js');
 const { Todo } = require('./models/todo.js');
 const { User } = require('./models/user.js');
+const { authenticate } = require('./middleware/authenticate.js');
 
 const app = express();
 const env = process.env.NODE_ENV || 'development';
@@ -91,6 +92,7 @@ app.patch('/todos/:id', (req, res) => {
   })
 });
 
+// User Requests
 app.post('/users', (req, res) => {
   console.log('Creating new user...');
   const body = _.pick(req.body, ['email', 'password']);
@@ -103,6 +105,12 @@ app.post('/users', (req, res) => {
     res.status(400).send(err);
   });
 });
+
+
+app.get('/users/me', authenticate, (req, res) => {
+  res.send(req.user);
+});
+
 
 app.listen(port, () => {
   console.log(`App listening on port ${port} in ${env} mode`);
