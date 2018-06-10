@@ -11,39 +11,40 @@ const { User } = require('./models/user.js');
 const { authenticate } = require('./middleware/authenticate.js');
 
 const app = express();
-const env = process.env.NODE_ENV || 'development';
-const port = process.env.PORT || 3000;
+const env = process.env.NODE_ENV;
+const port = process.env.PORT;
 
 app.use(bodyParser.json());
 
-app.post('/todos', (req, res) => {
-  console.log('Creating new Todo...');
+app.post('/todos', authenticate, (req, res) => {
   const todo = new Todo({
-    text: req.body.text
+    text: req.body.text,
+    _creator: req.user._id,
   });
   todo.save().then((doc) => {
-    console.log('Success!');
     res.status(200).send(doc);
   }, (err) => {
     res.status(400).send(err);
   });
 });
 
-app.get('/todos', (req, res) => {
-  Todo.find().then((todos) => {
+app.get('/todos', authenticate, (req, res) => {
+  Todo.find({ _creator: req.user._id }).then((todos) => {
     res.status(200).send({ todos });
   }, (err) => {
     res.send(400).send(err);
   });
 });
 
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
   const { id } = req.params;
-  console.log('Finding todo with ID: ', id);
   if (!ObjectID.isValid(id)) {
     return res.status(404).send('Not a valid ID');
   }
-  Todo.findById(id).then((todo) => {
+  Todo.findOne({
+    _id: id,
+    _creator: req.user._id,
+  }).then((todo) => {
     if (!todo) {
       return res.status(404).send('Todo not found');
     }
@@ -51,13 +52,15 @@ app.get('/todos/:id', (req, res) => {
   }).catch((err) => console.log(err));
 });
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
   const { id } = req.params;
-  console.log(' Deleting todo with ID: ', id);
   if (!ObjectID.isValid(id)) {
     return res.status(404).send('Not a valid ID');
   }
-  Todo.findByIdAndRemove(id).then((todo) => {
+  Todo.findOneAndRemove({
+    _id: id,
+    _creator: req.user._id,
+  }).then((todo) => {
     if (!todo) {
       return res.status(404).send('Todo not found');
     }
@@ -65,10 +68,9 @@ app.delete('/todos/:id', (req, res) => {
   }).catch((err) => console.log(err));
 });
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
   const { id } = req.params;
   const body = _.pick(req.body, ['text', 'completed']); // creates array of values from body
-  console.log('Updatind todo with ID: ', id);
   if (!ObjectID.isValid(id)) {
     return res.status(404).send('Not a valid ID');
   }
@@ -78,7 +80,10 @@ app.patch('/todos/:id', (req, res) => {
     body.completed = false;
     body.completedAt = null; // null removes item from DB
   }
-  Todo.findByIdAndUpdate(id, {
+  Todo.findOneAndUpdate({
+    _id: id,
+    _creator: req.user._id,
+  }, {
     $set: body
   }, {
     new: true
